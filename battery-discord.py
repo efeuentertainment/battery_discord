@@ -9,6 +9,7 @@ from discord.ext import tasks
 from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
+CHANNEL_ID = os.getenv('CHANNEL_ID')
 USER_ID = os.getenv('USER_ID')
 
 updateID = 0
@@ -36,7 +37,8 @@ class MyClient(discord.Client):
       return
 
     if message.content.startswith('!status'):
-      response = f'{message.author.mention} ' + str(voltage) + "mV"
+      #response = f'{message.author.mention} ' + str(voltage) + " mV"
+      response = str(voltage) + " mV"
       print(response)
       await message.reply(response, mention_author=False)
   
@@ -86,11 +88,12 @@ class MyClient(discord.Client):
     #low voltage alarm
     if voltage < lowVoltageAlarm and not lowVoltageSentFlag:
       lowVoltageSentFlag = True
-      msg = "low voltage:\n"
+      msg = f"<@{USER_ID}> " + "low voltage:\n"
       msg += str(voltage) + " mV"
       print(msg)
-      channel = self.get_channel(864879333428559898)  # channel ID goes here
+      channel = self.get_channel((int)(CHANNEL_ID))  # channel ID goes here
       await channel.send(msg)
+
     if voltage > (lowVoltageAlarm + 200):
       lowVoltageSentFlag = False
 
@@ -100,8 +103,11 @@ class MyClient(discord.Client):
       msg = f"<@{USER_ID}> " + "below custom voltage:\n"
       msg += str(voltage) + " mV"
       print(msg)
-      channel = self.get_channel(864879333428559898)  # channel ID goes here
+#      print(CHANNEL_ID)
+#      print(864879333428559898)
+      channel = self.get_channel((int)(CHANNEL_ID))  # channel ID goes here
       await channel.send(msg)
+
     if voltage > (customVoltageAlarm + 200):
       lowVoltageSentFlag = False
 
