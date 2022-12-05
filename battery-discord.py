@@ -2,28 +2,66 @@
 # coding: utf-8
 # created on pancake by firened
 import subprocess
-import threading
-
+#import threading
 import os
-import random
 import discord
-
+from discord.ext import tasks
 from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
+USER_ID = os.getenv('USER_ID')
 
 updateID = 0
 voltage = 0
+lowVoltageAlarm = 3400
+lowVoltageSentFlag = True
+customVoltageAlarm = 4300
+customVoltageSentFlag = False
 
-client = discord.Client()
+class MyClient(discord.Client):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
 
-def measure():
-    t = threading.Timer(30.0, measure)
-    t.daemon = True
-    t.start()
-    
+    # an attribute we can access from our task
+    self.counter = 0
+
+    # start the task to run in the background
+    self.my_background_task.start()
+
+  async def on_ready(self):
+    print(f'Logged in as {self.user} (ID: {self.user.id})')
+  async def on_message(self, message):
+    # we do not want the bot to reply to itself
+    if message.author.id == self.user.id:
+      return
+
+    if message.content.startswith('!status'):
+      response = f'{message.author.mention} ' + str(voltage) + "mV"
+      print(response)
+      await message.reply(response, mention_author=False)
+  
+  #@client.event
+#  async def on_message(message):
+#    if message.author == client.user:
+#      return
+#
+#    if message.content == '!status':
+#        response = str(voltage) + "mV"
+#        await message.author.send('hi')
+#        await message.channel.send(response)
+#    elif message.content == '!raise-exception':
+#        raise discord.DiscordException
+
+
+  @tasks.loop(seconds=10)  # task runs every 60 seconds
+  async def my_background_task(self):
+
     global updateID
     global voltage
+    global lowVoltageAlarm
+    global lowVoltageSentFlag
+    global customVoltageAlarm
+    global customVoltageSentFlag
 
     # get voltage
     string_before_cleaning_and_decoding =  subprocess.Popen("sudo i2cget -y 1 0x62 0x02 w", shell=True, stdout=subprocess.PIPE).stdout
@@ -39,45 +77,40 @@ def measure():
     updateID += 1
 
     # output the voltage
-    print(str(voltage) + "mV")
-    #if not client.is_closed():
-    #    channel = client.get_channel(864879333428559898)
-    #    channel.send('hello')
+#    print(str(voltage) + "mV")
+#    print('sending')
+#    channel = self.get_channel(864879333428559898)  # channel ID goes here
+#    self.counter += 1
+#    await channel.send(str(voltage) + "mV")
+    
+    #low voltage alarm
+    if voltage < lowVoltageAlarm and not lowVoltageSentFlag:
+      lowVoltageSentFlag = True
+      msg = "low voltage:\n"
+      msg += str(voltage) + " mV"
+      print(msg)
+      channel = self.get_channel(864879333428559898)  # channel ID goes here
+      await channel.send(msg)
+    if voltage > (lowVoltageAlarm + 200):
+      lowVoltageSentFlag = False
 
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-
-    brooklyn_99_quotes = [
-        'I\'m the human form of the 💯 emoji.',
-        'Bingpot!',
-        (
-            'Cool. Cool cool cool cool cool cool cool, '
-            'no doubt no doubt no doubt no doubt.'
-        ),
-    ]
-
-    if message.content == '99!':
-        response = random.choice(brooklyn_99_quotes)
-        await message.channel.send(response)
-    elif message.content == 'raise-exception':
-        raise discord.DiscordException
-
-
-@client.event
-async def on_ready():
-    print(f'{client.user.name} has connected to Discord!')
+    #custom voltage alarm
+    if voltage < customVoltageAlarm and not customVoltageSentFlag:
+      customVoltageSentFlag = True
+      msg = f"<@{USER_ID}> " + "below custom voltage:\n"
+      msg += str(voltage) + " mV"
+      print(msg)
+      channel = self.get_channel(864879333428559898)  # channel ID goes here
+      await channel.send(msg)
+    if voltage > (customVoltageAlarm + 200):
+      lowVoltageSentFlag = False
 
 
-#@bot.command(name='status', help='Responds with battery status')
-#async def status(ctx):
-#    response = str(voltage) + "mV"
-#    await ctx.send(response)
+  @my_background_task.before_loop
+  async def before_my_task(self):
+    #print('connecting')
+    await self.wait_until_ready()  # wait until the bot logs in
 
-#start interval timer thread
-measure()
 
+client = MyClient(intents=discord.Intents.default())
 client.run(TOKEN)
-
-
