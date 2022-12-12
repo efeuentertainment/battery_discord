@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 # created on pancake by firened
+# https://github.com/efeuentertainment/battery_discord
 import subprocess
 #import threading
 import os
@@ -15,8 +16,8 @@ USER_ID = os.getenv('USER_ID')
 updateID = 0
 voltage = 0
 lowVoltageAlarm = 3400
-lowVoltageSentFlag = True
-customVoltageAlarm = 4300
+lowVoltageSentFlag = False
+customVoltageAlarm = 3900
 customVoltageSentFlag = False
 
 class MyClient(discord.Client):
