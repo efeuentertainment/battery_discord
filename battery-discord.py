@@ -95,8 +95,11 @@ class MyClient(discord.Client):
       channel = self.get_channel((int)(CHANNEL_ID))  # channel ID goes here
       await channel.send(msg)
 
-    if voltage > (lowVoltageAlarm + 200):
+    if voltage > (lowVoltageAlarm + 200) and lowVoltageSentFlag:
       lowVoltageSentFlag = False
+      msg = "releasing lowVoltageAlarm trigger\n"
+      msg += str(voltage) + " mV"
+      print(msg)
 
     #custom voltage alarm
     if voltage < customVoltageAlarm and not customVoltageSentFlag:
@@ -109,8 +112,11 @@ class MyClient(discord.Client):
       channel = self.get_channel((int)(CHANNEL_ID))  # channel ID goes here
       await channel.send(msg)
 
-    if voltage > (customVoltageAlarm + 200):
-      lowVoltageSentFlag = False
+    if voltage > (customVoltageAlarm + 200) and customVoltageSentFlag:
+      customVoltageSentFlag = False
+      msg = "releasing customVoltageAlarm trigger\n"
+      msg += str(voltage) + " mV"
+      print(msg)
 
 
   @my_background_task.before_loop
